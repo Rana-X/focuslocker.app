@@ -4,7 +4,7 @@ import FocusLockerKit
 let app = NSApplication.shared
 let delegate = AppDelegate()
 
-app.setActivationPolicy(.accessory)
+app.setActivationPolicy(.regular)
 app.delegate = delegate
 
 withExtendedLifetime(delegate) {

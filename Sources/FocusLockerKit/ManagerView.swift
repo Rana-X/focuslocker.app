@@ -14,6 +14,41 @@ struct ManagerView: View {
                     .foregroundStyle(.secondary)
             }
 
+            if model.hasActiveLocks {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .center, spacing: 10) {
+                        Image(systemName: model.backgroundAgentStatus == .running ? "lock.fill" : "exclamationmark.triangle.fill")
+                            .foregroundStyle(model.backgroundAgentStatus == .running ? .orange : .yellow)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(model.backgroundAgentStatus.title)
+                                .font(.headline)
+                            Text(model.backgroundAgentStatus.detail)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    HStack(spacing: 10) {
+                        Button("Turn Off All Locks") {
+                            model.disableAllLocks()
+                        }
+                        .buttonStyle(.borderedProminent)
+
+                        if model.backgroundAgentStatus.showsRecoveryAction {
+                            Button("Retry Background Helper") {
+                                model.retryBackgroundHelper?()
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color(nsColor: .controlBackgroundColor))
+                )
+            }
+
             HStack(spacing: 10) {
                 TextField("Search applications", text: $model.searchText)
                     .textFieldStyle(.roundedBorder)

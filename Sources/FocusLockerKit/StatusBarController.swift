@@ -5,6 +5,7 @@ import Combine
 final class StatusBarController: NSObject {
     private let model: AppModel
     private let openLocker: () -> Void
+    private let unlockApp: (String) -> Void
     private let disableAllLocksAndQuit: () -> Void
 
     private let statusItem: NSStatusItem
@@ -14,10 +15,12 @@ final class StatusBarController: NSObject {
     init(
         model: AppModel,
         openLocker: @escaping () -> Void,
+        unlockApp: @escaping (String) -> Void,
         disableAllLocksAndQuit: @escaping () -> Void
     ) {
         self.model = model
         self.openLocker = openLocker
+        self.unlockApp = unlockApp
         self.disableAllLocksAndQuit = disableAllLocksAndQuit
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
@@ -67,11 +70,12 @@ final class StatusBarController: NSObject {
             let submenu = NSMenu()
             for bundleID in lockedAppIDs {
                 let appItem = NSMenuItem(
-                    title: model.displayName(for: bundleID),
-                    action: nil,
+                    title: "Unlock \(model.displayName(for: bundleID))",
+                    action: #selector(handleUnlockApp(_:)),
                     keyEquivalent: ""
                 )
-                appItem.isEnabled = false
+                appItem.representedObject = bundleID
+                appItem.target = self
                 submenu.addItem(appItem)
             }
             lockedAppsItem.submenu = submenu
@@ -103,6 +107,12 @@ final class StatusBarController: NSObject {
     @objc
     private func handleOpenLocker() {
         openLocker()
+    }
+
+    @objc
+    private func handleUnlockApp(_ sender: NSMenuItem) {
+        guard let bundleID = sender.representedObject as? String else { return }
+        unlockApp(bundleID)
     }
 
     @objc

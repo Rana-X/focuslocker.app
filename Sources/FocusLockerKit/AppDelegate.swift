@@ -5,69 +5,65 @@ import Combine
 public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var model: AppModel!
     private var managerWindowController: ManagerWindowController!
-    private var statusBarController: StatusBarController!
     private var lockEnforcer: LockEnforcer!
-    private var guardianManager: GuardianManager!
-
-    private var allowManagedQuit = false
+    private var helperRegistrationController: HelperRegistrationController!
+    private var agentXPCClient: AgentXPCClient!
+    private var updaterController: UpdaterController!
+    private var helperSyncTask: Task<Void, Never>?
     private var cancellables = Set<AnyCancellable>()
+    private var distributedObservers: [NSObjectProtocol] = []
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
         configureMainMenu()
+        LegacyGuardianCleanup.clearIfPresent()
 
-        let guardianManager = GuardianManager()
-        let model = AppModel()
+        let lockStore = LockStore()
+        lockStore.migrateLegacyDefaultsIfNeeded()
+
+        let model = AppModel(lockStore: lockStore)
+        model.retryBackgroundHelper = { [weak self] in
+            self?.retryBackgroundHelper()
+        }
+
         let managerWindowController = ManagerWindowController(model: model)
-        let statusBarController = StatusBarController(
-            model: model,
-            openLocker: { [weak self] in
-                self?.showManager()
-            },
-            disableAllLocksAndQuit: { [weak self] in
-                self?.disableAllLocksAndQuit()
-            }
-        )
         let lockEnforcer = LockEnforcer(model: model)
+        let helperRegistrationController = HelperRegistrationController()
+        let agentXPCClient = AgentXPCClient()
+        let updaterController = UpdaterController()
 
-        self.guardianManager = guardianManager
         self.model = model
         self.managerWindowController = managerWindowController
-        self.statusBarController = statusBarController
         self.lockEnforcer = lockEnforcer
+        self.helperRegistrationController = helperRegistrationController
+        self.agentXPCClient = agentXPCClient
+        self.updaterController = updaterController
 
         model.refreshCatalog()
+        model.startMonitoringLockState()
+        observeDistributedNotifications()
         bindLockState()
-
-        if model.hasActiveLocks && !guardianManager.isManagedLaunch {
-            if guardianManager.activatePersistence(showManagerOnManagedLaunch: true) {
-                allowManagedQuit = true
-                NSApp.terminate(nil)
-                return
-            }
-        }
-
-        guardianManager.syncPersistence(hasActiveLocks: model.hasActiveLocks)
         lockEnforcer.start()
+        syncBackgroundLocking(pushState: model.hasActiveLocks)
+        showManager()
+    }
 
-        if guardianManager.isManagedLaunch {
-            if guardianManager.shouldShowManagerOnLaunch() {
-                showManager()
-            }
-        } else {
-            showManager()
-        }
+    public func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showManager()
+        return true
     }
 
     public func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard model.hasActiveLocks, !allowManagedQuit else {
-            return .terminateNow
-        }
-
-        hideManager()
-        return .terminateCancel
+        .terminateNow
     }
 
     public func applicationWillTerminate(_ notification: Notification) {
+        helperSyncTask?.cancel()
+        let center = DistributedNotificationCenter.default()
+        for observer in distributedObservers {
+            center.removeObserver(observer)
+        }
+        distributedObservers.removeAll()
+        model?.stopMonitoringLockState()
         lockEnforcer?.stop()
     }
 
@@ -81,42 +77,123 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.terminate(nil)
     }
 
+    @objc
+    private func checkForUpdatesFromMenu() {
+        updaterController.checkForUpdates()
+    }
+
+    @objc
+    private func retryBackgroundHelperFromMenu() {
+        retryBackgroundHelper()
+    }
+
+    @objc
+    private func resetFocusLockerFromMenu() {
+        model.disableAllLocks()
+        _ = helperRegistrationController.syncRegistration(
+            hasActiveLocks: false,
+            mainAppBundleURL: Bundle.main.bundleURL
+        )
+        try? FileManager.default.removeItem(at: SupportPaths.agentEndpointURL)
+        refreshBackgroundStatus()
+    }
+
     private func showManager() {
         managerWindowController.showWindowAndActivate()
-    }
-
-    private func hideManager() {
-        managerWindowController.hideWindow()
-    }
-
-    private func disableAllLocksAndQuit() {
-        model.disableAllLocks()
-        guardianManager.disablePersistence()
-        allowManagedQuit = true
-        NSApp.terminate(nil)
     }
 
     private func bindLockState() {
         model.$lockedBundleIDs
             .dropFirst()
             .sink { [weak self] lockedBundleIDs in
-                self?.handleLockStateChange(hasActiveLocks: !lockedBundleIDs.isEmpty)
+                guard let self else { return }
+                DispatchQueue.main.async { [lockedBundleIDs] in
+                    self.syncBackgroundLocking(pushState: !lockedBundleIDs.isEmpty)
+                }
             }
             .store(in: &cancellables)
     }
 
-    private func handleLockStateChange(hasActiveLocks: Bool) {
-        guard let guardianManager else { return }
+    private func syncBackgroundLocking(pushState: Bool) {
+        helperSyncTask?.cancel()
 
-        if hasActiveLocks && !guardianManager.isManagedLaunch {
-            if guardianManager.activatePersistence(showManagerOnManagedLaunch: true) {
-                allowManagedQuit = true
-                NSApp.terminate(nil)
-                return
-            }
+        let status = helperRegistrationController.syncRegistration(
+            hasActiveLocks: model.hasActiveLocks,
+            mainAppBundleURL: Bundle.main.bundleURL
+        )
+        model.updateBackgroundAgentStatus(status)
+
+        guard pushState, model.hasActiveLocks else {
+            refreshBackgroundStatus()
+            return
         }
 
-        guardianManager.syncPersistence(hasActiveLocks: hasActiveLocks)
+        guard agentXPCClient.hasPublishedEndpoint else {
+            refreshBackgroundStatus()
+            lockEnforcer.checkRunningApplications()
+            return
+        }
+
+        let lockedBundleIDs = model.lockedBundleIDs
+        helperSyncTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            self?.agentXPCClient.setLockedApps(lockedBundleIDs) { _ in
+                Task { @MainActor [weak self] in
+                    self?.refreshBackgroundStatus()
+                    self?.lockEnforcer.checkRunningApplications()
+                }
+            }
+        }
+    }
+
+    private func retryBackgroundHelper() {
+        let status = helperRegistrationController.syncRegistration(
+            hasActiveLocks: model.hasActiveLocks,
+            mainAppBundleURL: Bundle.main.bundleURL,
+            forceLaunch: true
+        )
+        model.updateBackgroundAgentStatus(status)
+        if model.hasActiveLocks {
+            syncBackgroundLocking(pushState: true)
+        }
+    }
+
+    private func refreshBackgroundStatus() {
+        let registrationStatus = helperRegistrationController.currentStatus(hasActiveLocks: model.hasActiveLocks)
+        model.updateBackgroundAgentStatus(registrationStatus)
+
+        guard model.hasActiveLocks, agentXPCClient.hasPublishedEndpoint else { return }
+
+        agentXPCClient.getStatus { [weak self] result in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                switch result {
+                case let .success(state):
+                    self.model.updateBackgroundAgentStatus(
+                        state.isLockingEnabled && !state.lockedBundleIDs.isEmpty ? .running : registrationStatus
+                    )
+                case .failure:
+                    self.model.updateBackgroundAgentStatus(registrationStatus)
+                }
+            }
+        }
+    }
+
+    private func observeDistributedNotifications() {
+        let center = DistributedNotificationCenter.default()
+
+        distributedObservers = [
+            center.addObserver(forName: FocusLockerNotifications.helperStatusDidChange, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.refreshBackgroundStatus()
+                }
+            },
+            center.addObserver(forName: FocusLockerNotifications.openManager, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.showManager()
+                }
+            }
+        ]
     }
 
     private func configureMainMenu() {
@@ -126,6 +203,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let appMenu = NSMenu()
 
+        let checkForUpdatesItem = NSMenuItem(
+            title: "Check for Updates…",
+            action: #selector(checkForUpdatesFromMenu),
+            keyEquivalent: ""
+        )
+        checkForUpdatesItem.target = self
+        appMenu.addItem(checkForUpdatesItem)
+
+        appMenu.addItem(.separator())
+
         let openLockerItem = NSMenuItem(
             title: "Open Locker",
             action: #selector(openLockerFromMenu),
@@ -133,6 +220,32 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         openLockerItem.target = self
         appMenu.addItem(openLockerItem)
+
+        appMenu.addItem(.separator())
+
+        let disableLocksItem = NSMenuItem(
+            title: "Disable All Locks",
+            action: #selector(disableAllLocksFromMenu),
+            keyEquivalent: ""
+        )
+        disableLocksItem.target = self
+        appMenu.addItem(disableLocksItem)
+
+        let retryHelperItem = NSMenuItem(
+            title: "Retry Background Helper",
+            action: #selector(retryBackgroundHelperFromMenu),
+            keyEquivalent: ""
+        )
+        retryHelperItem.target = self
+        appMenu.addItem(retryHelperItem)
+
+        let resetItem = NSMenuItem(
+            title: "Reset Focus Locker",
+            action: #selector(resetFocusLockerFromMenu),
+            keyEquivalent: ""
+        )
+        resetItem.target = self
+        appMenu.addItem(resetItem)
 
         appMenu.addItem(.separator())
 
@@ -146,5 +259,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         appMenuItem.submenu = appMenu
         NSApp.mainMenu = mainMenu
+    }
+
+    @objc
+    private func disableAllLocksFromMenu() {
+        model.disableAllLocks()
+        refreshBackgroundStatus()
     }
 }

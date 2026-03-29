@@ -14,6 +14,10 @@ let package = Package(
         .executable(
             name: "FocusLocker",
             targets: ["FocusLocker"]
+        ),
+        .executable(
+            name: "FocusLockerAgent",
+            targets: ["FocusLockerAgent"]
         )
     ],
     targets: [
@@ -22,6 +26,10 @@ let package = Package(
         ),
         .executableTarget(
             name: "FocusLocker",
+            dependencies: ["FocusLockerKit"]
+        ),
+        .executableTarget(
+            name: "FocusLockerAgent",
             dependencies: ["FocusLockerKit"]
         )
     ]

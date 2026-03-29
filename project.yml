@@ -1,0 +1,71 @@
+name: FocusLocker
+options:
+  createIntermediateGroups: true
+  deploymentTarget:
+    macOS: "13.0"
+configs:
+  Debug: debug
+  Release: release
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+targets:
+  FocusLockerKit:
+    type: framework
+    platform: macOS
+    sources:
+      - Sources/FocusLockerKit
+    settings:
+      base:
+        PRODUCT_NAME: FocusLockerKit
+        PRODUCT_BUNDLE_IDENTIFIER: com.focuslocker.kit
+        GENERATE_INFOPLIST_FILE: YES
+        DEFINES_MODULE: YES
+        SKIP_INSTALL: YES
+  FocusLockerAgent:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/FocusLockerAgent
+    dependencies:
+      - target: FocusLockerKit
+    settings:
+      base:
+        PRODUCT_NAME: FocusLockerAgent
+        PRODUCT_BUNDLE_IDENTIFIER: com.focuslocker.agent
+        CODE_SIGN_STYLE: Automatic
+        INFOPLIST_FILE: AppResources/FocusLockerAgent-Info.plist
+        SKIP_INSTALL: YES
+  FocusLocker:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/FocusLocker
+    dependencies:
+      - target: FocusLockerKit
+      - package: Sparkle
+        product: Sparkle
+      - target: FocusLockerAgent
+    settings:
+      base:
+        PRODUCT_NAME: FocusLocker
+        PRODUCT_BUNDLE_IDENTIFIER: com.focuslocker.app
+        CODE_SIGN_STYLE: Automatic
+        INFOPLIST_FILE: AppResources/Info.plist
+        OTHER_LDFLAGS: "$(inherited) -ObjC"
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks"
+    postBuildScripts:
+      - name: Embed Login Item Helper
+        script: |
+          mkdir -p "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LoginItems"
+          ditto "$BUILT_PRODUCTS_DIR/FocusLockerAgent.app" "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LoginItems/FocusLockerAgent.app"
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle.git
+    from: 2.9.0
+schemes:
+  FocusLocker:
+    build:
+      targets:
+        FocusLocker: all

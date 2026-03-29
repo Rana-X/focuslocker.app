@@ -5,17 +5,17 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Focus Locker</string>
+	<string>Focus Locker Agent</string>
 	<key>CFBundleExecutable</key>
-	<string>FocusLocker</string>
+	<string>FocusLockerAgent</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.focuslocker.app</string>
+	<string>com.focuslocker.agent</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleName</key>
-	<string>FocusLocker</string>
+	<string>FocusLockerAgent</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -24,15 +24,9 @@
 	<string>1</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
+	<key>LSUIElement</key>
+	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
-	<key>SUAllowsAutomaticUpdates</key>
-	<true/>
-	<key>SUEnableAutomaticChecks</key>
-	<true/>
-	<key>SUFeedURL</key>
-	<string>https://updates.focuslocker.app/appcast.xml</string>
-	<key>SUPublicEDKey</key>
-	<string>REPLACE_WITH_SPARKLE_PUBLIC_EDDSA_KEY</string>
 </dict>
 </plist>

@@ -42,6 +42,7 @@ final class LockEnforcer: NSObject {
     }
 
     func checkRunningApplications() {
+        model.reloadLockStateFromStore()
         for runningApplication in NSWorkspace.shared.runningApplications {
             enforceIfNeeded(for: runningApplication)
         }
@@ -49,8 +50,13 @@ final class LockEnforcer: NSObject {
 
     @objc
     private func handleWorkspaceNotification(_ notification: Notification) {
+        model.reloadLockStateFromStore()
         guard let runningApplication = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else {
             return
+        }
+
+        if let bundleID = runningApplication.bundleIdentifier {
+            FocusLockerLog.enforcement.debug("Received workspace event for \(bundleID, privacy: .public)")
         }
 
         enforceIfNeeded(for: runningApplication)
@@ -61,6 +67,8 @@ final class LockEnforcer: NSObject {
         guard runningApplication.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return }
         guard model.isLocked(bundleID: bundleID) else { return }
         guard shouldEnforce(bundleID: bundleID) else { return }
+
+        FocusLockerLog.enforcement.info("Terminating locked app \(bundleID, privacy: .public)")
 
         let didTerminate = runningApplication.terminate()
         if !didTerminate {

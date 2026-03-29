@@ -5,11 +5,15 @@ import Foundation
 final class AppModel: ObservableObject {
     @Published private(set) var catalog: [AppCatalogEntry] = []
     @Published private(set) var lockedBundleIDs: Set<String>
+    @Published private(set) var backgroundAgentStatus: BackgroundAgentStatus = .inactive
     @Published var searchText = ""
 
     private let lockStore: LockStore
     private let appScanner: AppScanner
     private let unsupportedBundleIDs: Set<String>
+    private var distributedObservers: [NSObjectProtocol] = []
+
+    var retryBackgroundHelper: (() -> Void)?
 
     init(
         lockStore: LockStore = LockStore(),
@@ -20,7 +24,11 @@ final class AppModel: ObservableObject {
         self.appScanner = appScanner
         self.unsupportedBundleIDs = unsupportedBundleIDs
         self.lockedBundleIDs = lockStore.loadLockedBundleIDs().subtracting(unsupportedBundleIDs)
-        lockStore.saveLockedBundleIDs(self.lockedBundleIDs)
+        if self.lockedBundleIDs.isEmpty {
+            lockStore.clear()
+        } else {
+            lockStore.saveLockedBundleIDs(self.lockedBundleIDs)
+        }
     }
 
     var displayedApps: [AppCatalogEntry] {
@@ -54,6 +62,44 @@ final class AppModel: ObservableObject {
 
     func refreshCatalog() {
         catalog = appScanner.scanApplications()
+    }
+
+    func startMonitoringLockState() {
+        guard distributedObservers.isEmpty else { return }
+
+        let center = DistributedNotificationCenter.default()
+
+        let names = [
+            FocusLockerNotifications.lockStateDidChange,
+            FocusLockerNotifications.helperStatusDidChange
+        ]
+
+        distributedObservers = names.map { name in
+            center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.reloadLockStateFromStore()
+                }
+            }
+        }
+    }
+
+    func stopMonitoringLockState() {
+        let center = DistributedNotificationCenter.default()
+        for observer in distributedObservers {
+            center.removeObserver(observer)
+        }
+        distributedObservers.removeAll()
+    }
+
+    func reloadLockStateFromStore() {
+        let externalLockedBundleIDs = lockStore.loadLockedBundleIDs().subtracting(unsupportedBundleIDs)
+        guard externalLockedBundleIDs != lockedBundleIDs else { return }
+        lockedBundleIDs = externalLockedBundleIDs
+    }
+
+    func updateBackgroundAgentStatus(_ status: BackgroundAgentStatus) {
+        guard backgroundAgentStatus != status else { return }
+        backgroundAgentStatus = status
     }
 
     func isLocked(bundleID: String) -> Bool {
@@ -94,6 +140,13 @@ final class AppModel: ObservableObject {
         persistLocks()
     }
 
+    func setLockedBundleIDs(_ bundleIDs: Set<String>) {
+        let sanitizedBundleIDs = bundleIDs.subtracting(unsupportedBundleIDs)
+        guard sanitizedBundleIDs != lockedBundleIDs else { return }
+        lockedBundleIDs = sanitizedBundleIDs
+        persistLocks()
+    }
+
     func displayName(for bundleID: String) -> String {
         appEntry(for: bundleID)?.displayName ?? bundleID
     }
@@ -102,8 +155,18 @@ final class AppModel: ObservableObject {
         catalog.first { $0.bundleID == bundleID }
     }
 
+    func currentSharedState() -> SharedLockState? {
+        guard !lockedBundleIDs.isEmpty else { return nil }
+        return SharedLockState(lockedBundleIDs: Array(lockedBundleIDs))
+    }
+
     private func persistLocks() {
-        lockStore.saveLockedBundleIDs(lockedBundleIDs)
+        if lockedBundleIDs.isEmpty {
+            lockStore.clear()
+        } else {
+            lockStore.saveLockedBundleIDs(lockedBundleIDs)
+        }
+        FocusLockerBroadcaster.postLockStateDidChange()
     }
 
     private static let defaultUnsupportedBundleIDs: Set<String> = [
