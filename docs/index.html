@@ -6,217 +6,196 @@
   <title>Focus Locker for macOS</title>
   <meta
     name="description"
-    content="Focus Locker is a lightweight macOS app that lets you lock distracting apps and keep them closed until you intentionally unlock them."
+    content="Focus Locker is a native macOS utility that keeps distracting apps closed until you intentionally unlock them."
   >
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap"
     rel="stylesheet"
   >
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div class="site-shell">
-    <header class="topbar">
-      <a class="brand" href="#top">
-        <span class="brand-mark">FL</span>
-        <span class="brand-copy">
-          <strong>Focus Locker</strong>
-          <span>native macOS focus control</span>
-        </span>
-      </a>
-      <nav class="topnav" aria-label="Primary">
-        <a href="#how-it-works">How it works</a>
-        <a href="#install">Install</a>
-        <a href="#faq">FAQ</a>
-        <a href="https://github.com/Rana-X/focuslocker.app" target="_blank" rel="noreferrer">GitHub</a>
-      </nav>
-    </header>
+  <div class="ambient" aria-hidden="true"></div>
 
-    <main id="top">
-      <section class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">FOR MACOS ONLY</p>
-          <h1>Keep distracting apps shut until you intentionally unlock them.</h1>
-          <p class="lede">
-            Focus Locker is a small native macOS utility built for personal focus.
-            Pick the apps you want out of reach, close the window, and let the helper
-            keep those apps blocked in the background.
-          </p>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="Focus Locker home">
+      <span class="brand-mark">FL</span>
+      <span>Focus Locker</span>
+    </a>
+    <nav class="topnav" aria-label="Primary">
+      <a href="#workflow">Workflow</a>
+      <a href="#release">Release</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/Rana-X/focuslocker.app" target="_blank" rel="noreferrer">GitHub</a>
+    </nav>
+  </header>
 
-          <div class="hero-actions">
-            <a class="button button-primary" id="download-button" href="https://github.com/Rana-X/focuslocker.app/releases" target="_blank" rel="noreferrer">
-              Download for macOS
-            </a>
-            <a class="button button-secondary" href="https://github.com/Rana-X/focuslocker.app/releases" target="_blank" rel="noreferrer">
-              View releases
-            </a>
-          </div>
-
-          <div class="release-card" id="release-card">
-            <div class="release-row">
-              <span class="label">Current build</span>
-              <span class="value mono" id="release-version">Loading…</span>
-            </div>
-            <div class="release-row">
-              <span class="label">Package</span>
-              <span class="value" id="release-file">Checking latest upload…</span>
-            </div>
-            <div class="release-row">
-              <span class="label">Status</span>
-              <span class="value" id="release-status">Preparing release information…</span>
-            </div>
-          </div>
-        </div>
-
-        <aside class="hero-panel" aria-label="Product preview">
-          <div class="preview-window">
-            <div class="preview-toolbar">
-              <span></span><span></span><span></span>
-            </div>
-            <div class="preview-body">
-              <div class="preview-heading">
-                <h2>Focus Locker</h2>
-                <p>Search once. Lock once. Stay out.</p>
-              </div>
-              <div class="preview-banner">
-                <strong>Background locking active</strong>
-                <p>Locks stay enforced even after you close the main window.</p>
-              </div>
-              <div class="preview-search">outlook</div>
-              <div class="preview-app">
-                <div class="preview-icon">O</div>
-                <div class="preview-meta">
-                  <strong>Microsoft Outlook</strong>
-                  <span>Locked</span>
-                </div>
-                <button type="button">Unlock</button>
-              </div>
-              <div class="preview-app">
-                <div class="preview-icon preview-icon-alt">D</div>
-                <div class="preview-meta">
-                  <strong>Discord</strong>
-                  <span>Ready to lock</span>
-                </div>
-                <button type="button" class="lock-button">Lock</button>
-              </div>
-            </div>
-          </div>
-        </aside>
-      </section>
-
-      <section class="trust-strip">
-        <div>
-          <span class="trust-label">Built for</span>
-          <strong>macOS 13+</strong>
-        </div>
-        <div>
-          <span class="trust-label">Footprint</span>
-          <strong>native Swift bundle</strong>
-        </div>
-        <div>
-          <span class="trust-label">Use case</span>
-          <strong>personal focus tool</strong>
-        </div>
-      </section>
-
-      <section class="section-grid" id="how-it-works">
-        <div class="section-intro">
-          <p class="eyebrow">HOW IT WORKS</p>
-          <h2>Simple by design.</h2>
-        </div>
-        <div class="feature-grid">
-          <article class="feature-card">
-            <span class="feature-number">01</span>
-            <h3>Scan your Mac</h3>
-            <p>Focus Locker finds apps from the standard macOS application folders and puts them in one searchable list.</p>
-          </article>
-          <article class="feature-card">
-            <span class="feature-number">02</span>
-            <h3>Lock what matters</h3>
-            <p>Each app gets a single clear action: lock it or unlock it. No accounts, no timers, no extra setup.</p>
-          </article>
-          <article class="feature-card">
-            <span class="feature-number">03</span>
-            <h3>Keep going</h3>
-            <p>The background helper keeps locked apps closed after you dismiss the main window, until you explicitly turn them back on.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="split-section" id="install">
-        <div class="section-intro">
-          <p class="eyebrow">INSTALL</p>
-          <h2>Download, move, open.</h2>
-          <p>
-            This project is currently distributed as a GitHub release download.
-            It is usable today, but the current public build should be treated as a test release while notarization is being finalized.
-          </p>
-        </div>
-        <div class="install-steps">
-          <div class="step-card">
-            <span class="step-index">1</span>
-            <div>
-              <h3>Download the zip</h3>
-              <p>Use the button above to grab the latest uploaded macOS build.</p>
-            </div>
-          </div>
-          <div class="step-card">
-            <span class="step-index">2</span>
-            <div>
-              <h3>Move it to Applications</h3>
-              <p>Drag <span class="mono">FocusLocker.app</span> into your Applications folder.</p>
-            </div>
-          </div>
-          <div class="step-card">
-            <span class="step-index">3</span>
-            <div>
-              <h3>Open it once from Finder</h3>
-              <p>If macOS warns on first launch, right-click the app and choose <span class="mono">Open</span>.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="notice-panel">
-        <h2>Important release note</h2>
-        <p>
-          This app is a personal focus tool, not tamper-proof security. The current downloadable build is a public test build.
-          A full production release will add Developer ID signing, notarization, and auto-update activation.
+  <main id="top">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="system-line">macOS focus utility / local-first / background helper</p>
+        <h1 id="hero-title">Lock the apps that break your flow.</h1>
+        <p class="lede">
+          Focus Locker is a small native app that closes distracting apps the moment they open,
+          then keeps enforcing that choice after the main window is gone.
         </p>
-      </section>
-
-      <section class="faq-section" id="faq">
-        <div class="section-intro">
-          <p class="eyebrow">FAQ</p>
-          <h2>Before you install</h2>
+        <div class="hero-actions">
+          <a class="button button-primary" id="download-button" href="https://github.com/Rana-X/focuslocker.app/releases" target="_blank" rel="noreferrer">
+            Download for macOS
+          </a>
+          <a class="button button-secondary" href="#workflow">See how it works</a>
         </div>
-        <div class="faq-list">
-          <article class="faq-item">
-            <h3>Does it need an account?</h3>
-            <p>No. It is local-only. You open it, lock the apps you want, and use it immediately.</p>
-          </article>
-          <article class="faq-item">
-            <h3>Does it keep working after I close the window?</h3>
-            <p>Yes. The background helper keeps active locks enforced until you manually unlock those apps or disable all locks.</p>
-          </article>
-          <article class="faq-item">
-            <h3>Is it only for macOS?</h3>
-            <p>Yes. Focus Locker is built specifically for macOS and is not intended for Windows or Linux.</p>
-          </article>
-        </div>
-      </section>
-    </main>
-
-    <footer class="footer">
-      <p>Focus Locker</p>
-      <div class="footer-links">
-        <a href="https://github.com/Rana-X/focuslocker.app/releases" target="_blank" rel="noreferrer">Releases</a>
-        <a href="https://github.com/Rana-X/focuslocker.app" target="_blank" rel="noreferrer">Source</a>
       </div>
-    </footer>
-  </div>
+
+      <div class="workspace-preview" aria-label="Focus Locker product preview">
+        <div class="window-chrome">
+          <div class="traffic-lights" aria-hidden="true"><span></span><span></span><span></span></div>
+          <span class="chrome-title">FocusLocker.app</span>
+          <span class="chrome-status">running</span>
+        </div>
+        <div class="editor-shell">
+          <aside class="sidebar" aria-label="Locked app list preview">
+            <span class="sidebar-label">Locked</span>
+            <button class="side-row active" type="button"><span></span> com.spotify.client</button>
+            <button class="side-row" type="button"><span></span> com.tinyspeck.slackmacgap</button>
+            <button class="side-row" type="button"><span></span> com.apple.MobileSMS</button>
+          </aside>
+          <section class="command-surface" aria-label="Lock state preview">
+            <div class="command-bar">
+              <span class="prompt">⌘K</span>
+              <span>Lock distracting apps</span>
+            </div>
+            <div class="status-card">
+              <div>
+                <span class="status-dot"></span>
+                Background locking active
+              </div>
+              <strong>3 apps blocked</strong>
+            </div>
+            <div class="code-panel">
+              <div><span class="muted">01</span><span class="keyword">watch</span> launch events</div>
+              <div><span class="muted">02</span><span class="keyword">match</span> blocked bundle IDs</div>
+              <div><span class="muted">03</span><span class="keyword">close</span> app before focus slips</div>
+              <div><span class="muted">04</span><span class="keyword">sync</span> helper state in background</div>
+            </div>
+            <div class="terminal-line">
+              <span>~/focus</span>
+              <strong>locked until you decide otherwise</strong>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="Product facts">
+      <div>
+        <span>Platform</span>
+        <strong>macOS 13+</strong>
+      </div>
+      <div>
+        <span>Runtime</span>
+        <strong>Native Swift</strong>
+      </div>
+      <div>
+        <span>Data</span>
+        <strong>Local state file</strong>
+      </div>
+      <div>
+        <span>Mode</span>
+        <strong>Personal focus</strong>
+      </div>
+    </section>
+
+    <section class="flow-section" id="workflow">
+      <div class="section-copy">
+        <p class="system-line">workflow</p>
+        <h2>One search list. One decision. No ritual.</h2>
+      </div>
+      <div class="flow-list">
+        <article>
+          <span>01</span>
+          <h3>Scan the Mac</h3>
+          <p>Focus Locker finds installed apps from the standard macOS application folders and groups them in a searchable surface.</p>
+        </article>
+        <article>
+          <span>02</span>
+          <h3>Choose the distractions</h3>
+          <p>Lock Slack, Messages, browsers, games, or anything else that tends to pull attention away at the wrong time.</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h3>Let the helper enforce it</h3>
+          <p>The login item helper keeps locked apps closed after you dismiss the manager window or return from login.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="release-section" id="release">
+      <div class="release-copy">
+        <p class="system-line">release channel</p>
+        <h2>Download the current macOS build.</h2>
+        <p>
+          Releases are hosted on GitHub while the production signing, notarization, and auto-update path is being finalized.
+        </p>
+      </div>
+      <div class="release-card" id="release-card">
+        <div class="release-row">
+          <span class="label">Current build</span>
+          <span class="value mono" id="release-version">Loading...</span>
+        </div>
+        <div class="release-row">
+          <span class="label">Package</span>
+          <span class="value" id="release-file">Checking latest upload...</span>
+        </div>
+        <div class="release-row">
+          <span class="label">Status</span>
+          <span class="value" id="release-status">Preparing release information...</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="note-section">
+      <div>
+        <p class="system-line">important</p>
+        <h2>Built for focus, not tamper-proof security.</h2>
+      </div>
+      <p>
+        Focus Locker is intentionally simple: it helps you keep yourself out of chosen apps.
+        It is not parental control software, device management, or a hardened security product.
+      </p>
+    </section>
+
+    <section class="faq-section" id="faq">
+      <div class="section-copy">
+        <p class="system-line">faq</p>
+        <h2>Before you install.</h2>
+      </div>
+      <div class="faq-list">
+        <article>
+          <h3>Does it need an account?</h3>
+          <p>No. Focus Locker runs locally and stores active locks in your user Library folder.</p>
+        </article>
+        <article>
+          <h3>Does it keep working after I close the window?</h3>
+          <p>Yes. When active locks exist, the background helper keeps enforcing them.</p>
+        </article>
+        <article>
+          <h3>Is this production-signed?</h3>
+          <p>The current public release path is still being finalized with Developer ID signing, notarization, and Sparkle updates.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Focus Locker</p>
+    <div class="footer-links">
+      <a href="https://github.com/Rana-X/focuslocker.app/releases" target="_blank" rel="noreferrer">Releases</a>
+      <a href="https://github.com/Rana-X/focuslocker.app" target="_blank" rel="noreferrer">Source</a>
+    </div>
+  </footer>
 
   <script src="./site.js"></script>
 </body>
